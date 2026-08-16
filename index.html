@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drawings Status Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0F172A;--card:#1E293B;--card-glass: rgba(30,41,59,0.6);--border: rgba(148,163,184,0.15);
+    --primary:#2563EB;--primary-glow: rgba(37,99,235,0.35);--success:#059669;--warning:#D97706;--danger:#DC2626;
+    --violet:#7C3AED;--cyan:#0E7490;--text:#F1F5F9;--text-dim:#94A3B8;--text-faint:#64748B;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(37,99,235,0.12), transparent 60%),
+      radial-gradient(1000px 600px at 100% 0%, rgba(124,58,237,0.08), transparent 55%),
+      var(--bg);
+    color:var(--text);font-family:'Inter',-apple-system,sans-serif;min-height:100vh;
+  }
+  .mono{font-family:'JetBrains Mono',monospace;}
+  .wrap{max-width:1440px;margin:0 auto;padding:28px 32px 60px;}
+  .header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:22px;flex-wrap:wrap;gap:16px;}
+  .header-brand{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+  .brand-logo{height:44px;width:auto;flex-shrink:0;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.4));}
+  .header-titles{min-width:0;}
+  .header h1{font-size:26px;font-weight:800;margin:0 0 4px;
+    background:linear-gradient(90deg,#fff, #93C5FD);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:-.3px;}
+  .header p{margin:0;color:var(--text-dim);font-size:13px;}
+  .live-badge{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--warning);
+    background:rgba(217,119,6,0.1);border:1px solid rgba(217,119,6,0.3);padding:6px 14px;border-radius:999px;}
+  .live-dot{width:7px;height:7px;border-radius:50%;background:var(--warning);box-shadow:0 0 8px var(--warning);animation:pulse 1.6s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+  .glass{background:var(--card-glass);backdrop-filter: blur(16px);-webkit-backdrop-filter: blur(16px);
+    border:1px solid var(--border);border-radius:16px;transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;}
+  .glass:hover{ border-color: rgba(148,163,184,0.3); }
+
+  /* Scope banner */
+  .scope-banner{padding:18px 22px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
+  .scope-track{flex:1;min-width:260px;}
+  .scope-track-bar{height:26px;border-radius:8px;background:rgba(148,163,184,0.1);overflow:hidden;display:flex;position:relative;}
+  .scope-fill{height:100%;background:linear-gradient(90deg,#2563EB,#7C3AED);}
+  .scope-labels{display:flex;justify-content:space-between;font-size:12px;color:var(--text-dim);margin-top:8px;}
+  .scope-big{font-size:15px;font-weight:700;color:var(--text);}
+
+  .filters{display:flex; gap:14px; flex-wrap:wrap; align-items:center;padding:18px 20px; margin-bottom:22px;}
+  .filter-group{display:flex;flex-direction:column;gap:5px;min-width:190px;flex:1;}
+  .filter-group label{font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.6px;font-weight:600;}
+  select{appearance:none;-webkit-appearance:none;background: rgba(15,23,42,0.6);border:1px solid var(--border);color:var(--text);
+    padding:10px 34px 10px 14px;border-radius:10px;font-size:13.5px;font-family:inherit;cursor:pointer;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position: left 10px center;transition: border-color .2s, box-shadow .2s;}
+  select:hover, select:focus{ border-color:var(--primary); box-shadow:0 0 0 3px var(--primary-glow); outline:none; }
+  .reset-btn{padding:10px 18px;border-radius:10px;border:1px solid var(--border);background:rgba(220,38,38,0.08);color:#FCA5A5;
+    font-size:13px;font-weight:600;cursor:pointer; transition: all .2s; align-self:flex-end;}
+  .reset-btn:hover{background:rgba(220,38,38,0.18);border-color:var(--danger);}
+
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:24px;align-items:stretch;}
+  .kpi-card{padding:20px 20px 18px; position:relative; overflow:hidden; display:flex; flex-direction:column; justify-content:center; min-height:132px; min-width:0;}
+  .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent, var(--primary));}
+  .kpi-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    background:var(--accent-bg, rgba(37,99,235,0.15));color:var(--accent, var(--primary));margin-bottom:14px;font-size:18px;}
+  .kpi-label{font-size:12px;color:var(--text-dim);font-weight:500;margin-bottom:6px;}
+  .kpi-value{font-size:30px;font-weight:800;font-family:'JetBrains Mono',monospace;letter-spacing:-.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .kpi-sub{font-size:11px;color:var(--text-faint);margin-top:5px;}
+
+  .charts-grid{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap:18px;margin-bottom:24px;align-items:stretch;}
+  .chart-card{padding:20px; display:flex; flex-direction:column; min-width:0;}
+  .chart-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-shrink:0;}
+  .chart-title{font-size:14px;font-weight:600;color:var(--text);}
+  .chart-count{font-size:11px;color:var(--text-faint);white-space:nowrap;}
+  .chart-box{position:relative;height:280px;flex-shrink:0;}
+  .donut-box canvas{max-width:100%;}
+  .donut-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;}
+  .donut-center-value{font-size:30px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--text);letter-spacing:-.5px;}
+  .donut-center-label{font-size:11px;color:var(--text-faint);line-height:1.3;margin-top:2px;}
+  .legend-row{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;font-size:12px;color:var(--text-dim);}
+  .legend-row span{display:flex;align-items:center;gap:6px;}
+  .legend-dot{width:9px;height:9px;border-radius:3px;}
+
+  .table-card{padding:0;overflow:hidden;}
+  .table-toolbar{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;flex-wrap:wrap;gap:12px;border-bottom:1px solid var(--border);}
+  .search-box{display:flex;align-items:center;gap:8px;background:rgba(15,23,42,0.6);border:1px solid var(--border);border-radius:10px;padding:9px 14px;min-width:260px;}
+  .search-box input{background:none;border:none;outline:none;color:var(--text);font-size:13px;width:100%;font-family:inherit;}
+  .search-box input::placeholder{color:var(--text-faint);}
+  .export-btns{display:flex;gap:8px;}
+  .export-btn{display:flex;align-items:center;gap:6px;padding:9px 14px;border-radius:10px;border:1px solid var(--border);
+    background:rgba(148,163,184,0.06);color:var(--text-dim);font-size:12.5px;font-weight:600;cursor:pointer;transition:all .2s;}
+  .export-btn:hover{border-color:var(--primary);color:var(--text);background:rgba(37,99,235,0.12);}
+  .table-scroll{overflow-x:auto;max-height:560px;overflow-y:auto;}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:1080px;}
+  thead th{position:sticky;top:0;z-index:2;background:#16213A;color:var(--text-dim);text-align:left;font-weight:600;font-size:11px;
+    text-transform:uppercase;letter-spacing:.4px;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap;}
+  thead th:hover{color:var(--text);}
+  thead th .sort-ind{margin-left:5px;opacity:.5;font-size:10px;}
+  tbody td{padding:11px 16px;border-bottom:1px solid rgba(148,163,184,0.08);white-space:nowrap;}
+  tbody tr{transition:background .15s;}
+  tbody tr:hover{background:rgba(37,99,235,0.06);}
+  .doc-no{font-family:'JetBrains Mono',monospace;font-size:11px;color:#93C5FD;}
+  .title-cell{max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);}
+  .pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;}
+  .pill-dot{width:6px;height:6px;border-radius:50%;}
+  .pill.closed{background:rgba(5,150,105,0.15);color:#34D399;}
+  .pill.closed .pill-dot{background:#4ADE80;}
+  .pill.pending{background:rgba(217,119,6,0.15);color:#FBBF24;}
+  .pill.pending .pill-dot{background:#FBBF24;}
+  .pill.open{background:rgba(220,38,38,0.15);color:#F87171;}
+  .pill.open .pill-dot{background:#F87171;}
+  .pill.nys{background:rgba(148,163,184,0.12);color:#94A3B8;}
+  .pill.nys .pill-dot{background:#94A3B8;}
+  .overdue-flag{color:#F87171;font-size:10.5px;font-weight:700;margin-left:6px;}
+
+  .table-footer{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;flex-wrap:wrap;gap:12px;border-top:1px solid var(--border);}
+  .page-info{font-size:12px;color:var(--text-faint);}
+  .pagination{display:flex;gap:6px;align-items:center;}
+  .page-btn{padding:7px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(148,163,184,0.06);color:var(--text-dim);font-size:12px;cursor:pointer;transition:all .2s;}
+  .page-btn:hover:not(:disabled){border-color:var(--primary);color:var(--text);}
+  .page-btn:disabled{opacity:.35;cursor:not-allowed;}
+  .page-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+  .page-size{background:rgba(15,23,42,0.6);border:1px solid var(--border);color:var(--text-dim);padding:7px 10px;border-radius:8px;font-size:12px;font-family:inherit;}
+  .empty-state{padding:60px 20px;text-align:center;color:var(--text-faint);}
+
+  @media(max-width:1100px){ .kpi-grid{grid-template-columns:repeat(3,1fr);} .charts-grid{grid-template-columns:1fr;} }
+  @media(max-width:680px){ .kpi-grid{grid-template-columns:repeat(2,1fr);} .wrap{padding:18px 14px 40px;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <div class="header-brand">
+      <img class="brand-logo" id="brandLogo" src="" alt="" style="display:none;">
+      <div class="header-titles">
+        <h1 id="dashboardTitle">Drawings Status Dashboard</h1>
+        <p id="dashboardSubtitle">Loading&hellip;</p>
+      </div>
+    </div>
+    <div class="live-badge"><span class="live-dot"></span><span id="liveBadgeText">Loading&hellip;</span></div>
+  </div>
+
+  <div id="loadError" style="display:none;background:rgba(220,38,38,0.12);border:1px solid rgba(220,38,38,0.4);color:#FCA5A5;padding:14px 18px;border-radius:12px;margin-bottom:20px;font-size:13px;"></div>
+
+  <div class="scope-banner glass">
+    <div class="scope-track">
+      <div class="scope-labels"><span>Submitted so far (project-wide)</span><span class="scope-big" id="scopePct">0%</span></div>
+      <div class="scope-track-bar"><div class="scope-fill" id="scopeFill" style="width:0%;"></div></div>
+      <div class="scope-labels"><span id="scopeSubmitted">0 submitted</span><span id="scopeTotal">of 2,836 total expected</span></div>
+    </div>
+  </div>
+
+  <div class="filters glass">
+    <div class="filter-group"><label>Discipline</label><select id="fDiscipline"></select></div>
+    <div class="filter-group"><label>Document Type</label><select id="fType"></select></div>
+    <div class="filter-group"><label>Review Status</label><select id="fStatus"></select></div>
+    <div class="filter-group"><label>Overdue</label><select id="fOverdue">
+      <option value="All">All</option>
+      <option value="Overdue">Overdue only</option>
+      <option value="OnTrack">Not overdue</option>
+    </select></div>
+    <button class="reset-btn" id="resetBtn">Reset filters</button>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card glass" style="--accent:#059669;--accent-bg:rgba(5,150,105,0.15);">
+      <div class="kpi-icon">&#9989;</div>
+      <div class="kpi-label">Approved</div>
+      <div class="kpi-value" id="kpiApproved">0</div>
+      <div class="kpi-sub" id="kpiApprovedSub">Clean approval, no comments</div>
+    </div>
+    <div class="kpi-card glass" style="--accent:#2563EB;--accent-bg:rgba(37,99,235,0.15);">
+      <div class="kpi-icon">&#128221;</div>
+      <div class="kpi-label">Approved w/ Comments</div>
+      <div class="kpi-value" id="kpiApprovedComments">0</div>
+      <div class="kpi-sub" id="kpiApprovedCommentsSub">Approved, comments to resolve</div>
+    </div>
+    <div class="kpi-card glass" style="--accent:#D97706;--accent-bg:rgba(217,119,6,0.15);">
+      <div class="kpi-icon">&#9203;</div>
+      <div class="kpi-label">Pending</div>
+      <div class="kpi-value" id="kpiPending">0</div>
+      <div class="kpi-sub" id="kpiPendingSub">With reviewer / consultant</div>
+    </div>
+    <div class="kpi-card glass" style="--accent:#7C3AED;--accent-bg:rgba(124,58,237,0.15);">
+      <div class="kpi-icon">&#128203;</div>
+      <div class="kpi-label">Total DWG</div>
+      <div class="kpi-value" id="kpiTotal">0</div>
+      <div class="kpi-sub" id="kpiTotalSub">All submitted drawings</div>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-card glass">
+      <div class="chart-head"><div class="chart-title">Submission Status</div><div class="chart-count" id="statusCount"></div></div>
+      <div class="chart-box donut-box"><canvas id="statusChart" role="img" aria-label="Donut chart of drawing submission status across the full project scope"></canvas>
+        <div class="donut-center">
+          <div class="donut-center-value" id="donutCenterValue">0</div>
+          <div class="donut-center-label">Submitted<br>Drawings</div>
+        </div>
+      </div>
+      <div class="legend-row" id="statusLegend"></div>
+    </div>
+    <div class="chart-card glass">
+      <div class="chart-head"><div class="chart-title">Status by Discipline</div><div class="chart-count" id="discCount"></div></div>
+      <div class="chart-box"><canvas id="discChart" role="img" aria-label="Grouped bar chart per discipline: one bar stacked by review status (Approved, Approved with Comments, Pending) showing actual submitted drawings from the Submission sheet, next to a reference bar showing total expected drawings from the LIST-Drawings sheet"></canvas></div>
+    </div>
+    <div class="chart-card glass">
+      <div class="chart-head"><div class="chart-title">Submitted vs. Total Expected by Level / Zone</div><div class="chart-count" id="levelCount"></div></div>
+      <div class="chart-box"><canvas id="levelChart" role="img" aria-label="Stacked horizontal bar chart comparing drawings submitted, per the Submission sheet, against total expected drawings from the LIST-Drawings sheet, for each building level or zone, top twelve"></canvas></div>
+    </div>
+    <div class="chart-card glass">
+      <div class="chart-head"><div class="chart-title">Monthly Submission Trend</div><div class="chart-count" id="trendCount"></div></div>
+      <div class="chart-box"><canvas id="trendChart" role="img" aria-label="Line chart of drawings submitted per month, by date modified"></canvas></div>
+    </div>
+  </div>
+
+  <div class="table-card glass">
+    <div class="table-toolbar">
+      <div class="search-box"><span style="color:var(--text-faint);">&#128269;</span>
+        <input type="text" id="searchInput" placeholder="Search drawing no, title, discipline, zone..."></div>
+      <div class="export-btns">
+        <button class="export-btn" id="exportExcel">&#128190; Excel</button>
+        <button class="export-btn" id="exportCsv">&#128196; CSV</button>
+        <button class="export-btn" id="exportPdf">&#128462; PDF</button>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table id="docTable">
+        <thead>
+          <tr>
+            <th data-key="no">Drawing No <span class="sort-ind">&#8645;</span></th>
+            <th data-key="title">Title <span class="sort-ind">&#8645;</span></th>
+            <th data-key="discipline">Discipline <span class="sort-ind">&#8645;</span></th>
+            <th data-key="type">Type <span class="sort-ind">&#8645;</span></th>
+            <th data-key="level">Zone / Level <span class="sort-ind">&#8645;</span></th>
+            <th data-key="status">Review Status <span class="sort-ind">&#8645;</span></th>
+            <th data-key="rev">Rev <span class="sort-ind">&#8645;</span></th>
+            <th data-key="revDate">Revision Date <span class="sort-ind">&#8645;</span></th>
+            <th data-key="modified">Date Modified <span class="sort-ind">&#8645;</span></th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+      <div class="empty-state" id="emptyState" style="display:none;">No drawings match the current filters.</div>
+    </div>
+    <div class="table-footer">
+      <div class="page-info" id="pageInfo"></div>
+      <div class="pagination" id="paginationControls"></div>
+      <select class="page-size" id="pageSizeSelect">
+        <option value="25">25 / page</option>
+        <option value="50" selected>50 / page</option>
+        <option value="100">100 / page</option>
+        <option value="250">250 / page</option>
+      </select>
+    </div>
+  </div>
+
+  <div style="font-size:11px;color:var(--text-faint);margin-top:16px;line-height:1.6;">
+    Source: Qiddiya drawings register (Log_.xlsx). Every KPI, chart, and table row here is read directly from the "Submission" sheet (<span id="fnSubmittedCount">&hellip;</span> actual submission records) &mdash; Discipline, Type, Review Status, Revision, Revision Date and Date Modified all come from that sheet, not from LIST-Drawings. Two charts compare both sheets on purpose: "Status by Discipline" shows, per discipline, a bar stacked by true Review Status (Approved / Approved w/ Comments / Pending, uncapped) next to a Total Expected reference bar from the "LIST-Drawings" sheet (<span id="fnTotalExpected1">&hellip;</span> planned drawings, manually corrected for Surveying/Mapping &mdash; see note below). "Submitted vs. Total Expected by Level/Zone" plots the same comparison by zone instead. "Overdue" flags a drawing still in Pending review more than 14 days after its revision (submission) date &mdash; a fallback definition, since the Submission sheet doesn't carry a planned/due date of its own. The top banner ("Submitted so far") compares the full Submission sheet (<span id="fnSubmittedCount2">&hellip;</span>) against the full LIST-Drawings scope (<span id="fnTotalExpected2">&hellip;</span>) project-wide, independent of the filters below. <strong>Correction applied:</strong> LIST-Drawings listed fewer expected Surveying/Mapping drawings than were actually submitted, so Total Expected for Surveying/Mapping has been manually corrected to <span id="fnSurCorrected">&hellip;</span> (6 in CB4, 1 in LZZ, matching where those submissions actually sit) so the discipline reads as fully submitted rather than over-submitted — re-check this correction whenever LIST-Drawings itself is updated, in case it's no longer needed. "Monthly Submission Trend" is plotted by Date Modified (last workflow update), not Revision Date, since Date Modified more consistently reflects actual submission activity across the source file.
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script>
+/* Dashboard data is no longer hard-coded here — it's loaded at runtime from data.json and config.json
+   (both fetched from the same folder as this file). See README.md for how to update them. */
+let RAW = [];
+let TOTAL_EXPECTED = {};
+let TOTAL_EXPECTED_ALL = 0;
+let DOCS = [];
+let TOTAL_SCOPE = 0;
+let CONFIG = {};
+
+const COLORS = { primary:'#2563EB', success:'#059669', warning:'#D97706', danger:'#DC2626',
+  violet:'#7C3AED', cyan:'#0E7490', gray:'#64748B', textDim:'#94A3B8', grid:'rgba(148,163,184,0.12)' };
+const statusColor = { 'A - Approved':COLORS.success, 'B - Approved with Comments':COLORS.primary,
+  'Pending':COLORS.warning, 'C - Revise and Resubmit':COLORS.danger };
+const statusLabel = { 'A - Approved':'Approved', 'B - Approved with Comments':'Approved w/ Comments',
+  'Pending':'Pending review', 'C - Revise and Resubmit':'Revise & resubmit' };
+const closedStatuses = ['A - Approved','B - Approved with Comments'];
+const openStatuses = ['Pending','C - Revise and Resubmit'];
+
+Chart.defaults.font.family = "'Inter','JetBrains Mono',sans-serif";
+Chart.defaults.color = COLORS.textDim;
+Chart.register(ChartDataLabels);
+Chart.defaults.set('plugins.datalabels', { display:false }); // opt-in per chart below
+
+let state = { discipline:'All', type:'All', status:'All', overdue:'All', search:'', sortKey:'no', sortDir:'asc', page:1, pageSize:50 };
+let charts = {};
+
+function uniq(arr){ return [...new Set(arr)].sort(); }
+
+function facetFiltered(excludeKey){
+  return DOCS.filter(d=>{
+    if(excludeKey!=='discipline' && state.discipline!=='All' && d.discipline!==state.discipline) return false;
+    if(excludeKey!=='type' && state.type!=='All' && d.type!==state.type) return false;
+    if(excludeKey!=='status' && state.status!=='All' && d.status!==state.status) return false;
+    if(state.overdue==='Overdue' && !d.overdue) return false;
+    if(state.overdue==='OnTrack' && d.overdue) return false;
+    return true;
+  });
+}
+
+function populateSelect(id, key, current, labelFn){
+  const el = document.getElementById(id);
+  const options = uniq(facetFiltered(key).map(d=>d[key]));
+  el.innerHTML = '<option value="All">All</option>' + options.map(o=>`<option value="${String(o).replace(/"/g,'&quot;')}">${labelFn?labelFn(o):o}</option>`).join('');
+  el.value = options.includes(current) ? current : 'All';
+  if(el.value==='All' && current!=='All'){
+    if(key==='discipline') state.discipline='All';
+    if(key==='type') state.type='All';
+    if(key==='status') state.status='All';
+  }
+}
+
+function refreshFilterOptions(){
+  populateSelect('fDiscipline','discipline', state.discipline);
+  populateSelect('fType','type', state.type);
+  populateSelect('fStatus','status', state.status, o=>statusLabel[o]||o);
+}
+
+function getFiltered(){
+  let rows = facetFiltered(null);
+  if(state.search.trim()){
+    const q = state.search.trim().toLowerCase();
+    rows = rows.filter(d => (d.no+' '+d.title+' '+d.discipline+' '+d.level).toLowerCase().includes(q));
+  }
+  return rows;
+}
+
+function animateCounter(el, target){
+  const start = 0, duration = 700, startTime = performance.now();
+  function tick(now){
+    const p = Math.min(1, (now-startTime)/duration);
+    const eased = 1 - Math.pow(1-p, 3);
+    el.textContent = Math.round(start + (target-start)*eased).toLocaleString();
+    if(p<1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+function renderKpis(rows){
+  const total = rows.length;
+  const approved = rows.filter(d=>d.status==='A - Approved').length;
+  const approvedComments = rows.filter(d=>d.status==='B - Approved with Comments').length;
+  const pending = rows.filter(d=>d.status==='Pending').length;
+  animateCounter(document.getElementById('kpiApproved'), approved);
+  animateCounter(document.getElementById('kpiApprovedComments'), approvedComments);
+  animateCounter(document.getElementById('kpiPending'), pending);
+  animateCounter(document.getElementById('kpiTotal'), total);
+  document.getElementById('kpiApprovedSub').textContent = total ? `${(approved/total*100).toFixed(1)}% of shown submissions` : '';
+  document.getElementById('kpiApprovedCommentsSub').textContent = total ? `${(approvedComments/total*100).toFixed(1)}% of shown submissions` : '';
+  document.getElementById('kpiPendingSub').textContent = total ? `${(pending/total*100).toFixed(1)}% of shown submissions` : '';
+  document.getElementById('kpiTotalSub').textContent = total===TOTAL_SCOPE ? 'All submitted drawings' : `Filtered from ${TOTAL_SCOPE.toLocaleString()}`;
+
+  const pct = TOTAL_EXPECTED_ALL ? (TOTAL_SCOPE/TOTAL_EXPECTED_ALL*100) : 0;
+  document.getElementById('scopePct').textContent = pct.toFixed(1)+'%';
+  document.getElementById('scopeFill').style.width = pct+'%';
+  document.getElementById('scopeSubmitted').textContent = TOTAL_SCOPE.toLocaleString()+' submitted (Submission sheet)';
+  document.getElementById('scopeTotal').textContent = 'of '+TOTAL_EXPECTED_ALL.toLocaleString()+' total expected (LIST-Drawings)';
+}
+
+function destroyChart(key){ if(charts[key]){ charts[key].destroy(); delete charts[key]; } }
+
+function renderStatusChart(rows){
+  destroyChart('status');
+  const counts = {};
+  rows.forEach(d=>{ counts[d.status]=(counts[d.status]||0)+1; });
+  const order = ['A - Approved','B - Approved with Comments','Pending','C - Revise and Resubmit'];
+  const labels = order.filter(o=>counts[o]);
+  const data = labels.map(l=>counts[l]);
+  document.getElementById('statusCount').textContent = rows.length.toLocaleString()+' drawings';
+  document.getElementById('donutCenterValue').textContent = rows.length.toLocaleString();
+  charts.status = new Chart(document.getElementById('statusChart'), {
+    type:'doughnut',
+    data:{ labels: labels.map(l=>statusLabel[l]), datasets:[{ data, backgroundColor: labels.map(l=>statusColor[l]), borderColor:'#1E293B', borderWidth:3 }] },
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'66%', plugins:{ legend:{display:false},
+      tooltip:{ callbacks:{ label:(c)=>` ${c.label}: ${c.raw.toLocaleString()} (${(c.raw/rows.length*100).toFixed(1)}%)` } },
+      datalabels:{ display:(ctx)=>ctx.dataset.data[ctx.dataIndex]>0, color:'#fff', font:{ weight:'700', size:13 },
+        formatter:(value)=> value.toLocaleString() } } }
+  });
+  const legend = document.getElementById('statusLegend');
+  legend.innerHTML = labels.map(l=>`<span><span class="legend-dot" style="background:${statusColor[l]}"></span>${statusLabel[l]} &middot; ${counts[l].toLocaleString()}</span>`).join('');
+}
+
+function totalExpectedForDiscipline(disc){
+  // Sum TOTAL_EXPECTED entries for this discipline, respecting the current Type filter.
+  let sum = 0;
+  for(const key in TOTAL_EXPECTED){
+    const [lv, d, ty] = key.split('||');
+    if(d!==disc) continue;
+    if(state.type!=='All' && ty!==state.type) continue;
+    sum += TOTAL_EXPECTED[key];
+  }
+  return sum;
+}
+
+function renderDiscChart(rows){
+  destroyChart('disc');
+  // Submitted, broken down by Review Status: from the current filtered Submission-sheet rows, grouped by discipline.
+  // No capping against Total Expected here -- if a discipline has more submissions than LIST-Drawings expects
+  // (e.g. Surveying/Mapping: 7 submitted vs 4 expected), the true submitted count is shown, not silently clipped.
+  const byDisc = {}; // byDisc[disc] = { 'A - Approved':n, 'B - Approved with Comments':n, 'Pending':n, total:n }
+  rows.forEach(d=>{
+    if(!byDisc[d.discipline]) byDisc[d.discipline] = { 'A - Approved':0, 'B - Approved with Comments':0, 'Pending':0, 'C - Revise and Resubmit':0, total:0 };
+    if(byDisc[d.discipline][d.status]!==undefined) byDisc[d.discipline][d.status]++;
+    byDisc[d.discipline].total++;
+  });
+
+  const disciplinesInScope = uniq(DOCS.filter(d=>{
+    if(state.type!=='All' && d.type!==state.type) return false;
+    return true;
+  }).map(d=>d.discipline).concat(Object.keys(byDisc)));
+
+  const totalExpected = {};
+  disciplinesInScope.forEach(disc=>{ totalExpected[disc] = totalExpectedForDiscipline(disc); });
+
+  const entries = Object.entries(totalExpected).filter(e=>e[1]>0 || (byDisc[e[0]]&&byDisc[e[0]].total>0)).sort((a,b)=>b[1]-a[1]);
+  const labels = entries.map(e=>e[0]);
+  const approvedData = labels.map(l=> (byDisc[l]&&byDisc[l]['A - Approved'])||0 );
+  const approvedCommentsData = labels.map(l=> (byDisc[l]&&byDisc[l]['B - Approved with Comments'])||0 );
+  const pendingData = labels.map(l=> (byDisc[l]&&(byDisc[l]['Pending']+byDisc[l]['C - Revise and Resubmit']))||0 );
+  const totalExpectedData = labels.map(l=> totalExpected[l]||0 );
+  const submittedTotals = labels.map(l=> (byDisc[l]&&byDisc[l].total)||0 );
+
+  document.getElementById('discCount').textContent = labels.length+' disciplines';
+  charts.disc = new Chart(document.getElementById('discChart'), {
+    type:'bar',
+    data:{ labels, datasets:[
+      { label:'Approved', data:approvedData, backgroundColor:COLORS.success, borderRadius:4, stack:'submitted',
+        datalabels:{ display:(ctx)=>approvedData[ctx.dataIndex]>0, color:'#fff', font:{weight:'700',size:11}, formatter:(v)=>v.toLocaleString() } },
+      { label:'Approved w/ Comments', data:approvedCommentsData, backgroundColor:COLORS.primary, borderRadius:4, stack:'submitted',
+        datalabels:{ display:(ctx)=>approvedCommentsData[ctx.dataIndex]>0, color:'#fff', font:{weight:'700',size:11}, formatter:(v)=>v.toLocaleString() } },
+      { label:'Pending', data:pendingData, backgroundColor:COLORS.warning, borderRadius:4, stack:'submitted',
+        datalabels:{ display:(ctx)=>pendingData[ctx.dataIndex]>0, color:'#1E293B', font:{weight:'700',size:11}, formatter:(v)=>v.toLocaleString() } },
+      { label:'Total Expected', data:totalExpectedData, backgroundColor:'rgba(148,163,184,0.18)', borderColor:'rgba(148,163,184,0.6)', borderWidth:1.5, borderRadius:4, stack:'expected',
+        datalabels:{ display:(ctx)=>totalExpectedData[ctx.dataIndex]>0, color:COLORS.textDim, font:{weight:'700',size:11}, anchor:'end', align:'top', formatter:(v)=>v.toLocaleString() } }
+    ] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'bottom', labels:{ boxWidth:10, boxHeight:10, font:{size:10.5} } },
+        tooltip:{ callbacks:{ footer:(items)=>{
+          const l=items[0].label; const idx=labels.indexOf(l);
+          return [`Submitted total: ${submittedTotals[idx].toLocaleString()}`, `Total expected: ${totalExpectedData[idx].toLocaleString()}`];
+        } } } },
+      scales:{ x:{ grid:{display:false} }, y:{ grid:{color:COLORS.grid}, beginAtZero:true } } }
+  });
+}
+
+function totalExpectedFor(level){
+  // Sum TOTAL_EXPECTED entries for this level, respecting the current Discipline/Type filters.
+  let sum = 0;
+  for(const key in TOTAL_EXPECTED){
+    const [lv, disc, ty] = key.split('||');
+    if(lv!==level) continue;
+    if(state.discipline!=='All' && disc!==state.discipline) continue;
+    if(state.type!=='All' && ty!==state.type) continue;
+    sum += TOTAL_EXPECTED[key];
+  }
+  return sum;
+}
+
+function renderLevelChart(rows){
+  destroyChart('level');
+  // Submitted: from the current filtered Submission-sheet rows, grouped by level.
+  const submitted = {};
+  rows.forEach(d=>{ const lv = d.level||'(none)'; submitted[lv]=(submitted[lv]||0)+1; });
+
+  // Total Expected: from LIST-Drawings, respecting Discipline/Type filters only (Status/Overdue don't apply to a plan total).
+  const levelsInScope = uniq(DOCS.filter(d=>{
+    if(state.discipline!=='All' && d.discipline!==state.discipline) return false;
+    if(state.type!=='All' && d.type!==state.type) return false;
+    return true;
+  }).map(d=>d.level).concat(Object.keys(submitted)));
+
+  const total = {};
+  levelsInScope.forEach(lv=>{ total[lv] = totalExpectedFor(lv); });
+
+  const entries = Object.entries(total).filter(e=>e[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  const labels = entries.map(e=>e[0]);
+  const submittedData = labels.map(l=> Math.min(submitted[l]||0, total[l]) );
+  const remainingData = labels.map(l=> Math.max(total[l]-(submitted[l]||0), 0) );
+  document.getElementById('levelCount').textContent = labels.length+' zones';
+  charts.level = new Chart(document.getElementById('levelChart'), {
+    type:'bar',
+    data:{ labels, datasets:[
+      { label:'Submitted (Submission sheet)', data:submittedData, backgroundColor:COLORS.violet, borderRadius:4,
+        datalabels:{ display:(ctx)=>submittedData[ctx.dataIndex]>0, color:'#fff', font:{weight:'700',size:11},
+          formatter:(v)=>v.toLocaleString() } },
+      { label:'Not yet submitted (LIST-Drawings)', data:remainingData, backgroundColor:'rgba(148,163,184,0.25)', borderRadius:4,
+        datalabels:{ display:(ctx)=>remainingData[ctx.dataIndex]>0, color:'#CBD5E1', font:{weight:'700',size:11},
+          formatter:(v)=>v.toLocaleString() } }
+    ] },
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'bottom', labels:{ boxWidth:10, boxHeight:10, font:{size:10.5} } },
+        tooltip:{ callbacks:{ footer:(items)=>{ const l=items[0].label; return 'Total expected: '+total[l]; } } } },
+      scales:{ x:{ stacked:true, grid:{color:COLORS.grid}, beginAtZero:true }, y:{ stacked:true, grid:{display:false} } } }
+  });
+}
+
+function renderTrendChart(rows){
+  destroyChart('trend');
+  const counts = {};
+  rows.forEach(d=>{ if(d.modified){ const ym=d.modified.slice(0,7); counts[ym]=(counts[ym]||0)+1; } });
+  const labels = Object.keys(counts).sort();
+  document.getElementById('trendCount').textContent = rows.filter(d=>d.modified).length.toLocaleString()+' submitted';
+  charts.trend = new Chart(document.getElementById('trendChart'), {
+    type:'line',
+    data:{ labels, datasets:[{ label:'Submitted', data: labels.map(l=>counts[l]), borderColor:COLORS.cyan,
+      backgroundColor:'rgba(14,116,144,0.18)', fill:true, tension:.35, pointRadius:4, pointBackgroundColor:COLORS.cyan, borderWidth:2.5 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      scales:{ x:{ grid:{display:false} }, y:{ grid:{color:COLORS.grid}, beginAtZero:true } } }
+  });
+}
+
+function statusPillClass(status){
+  if(closedStatuses.includes(status)) return 'closed';
+  if(status==='Pending') return 'pending';
+  return 'open';
+}
+
+function renderTable(rows){
+  const sorted = [...rows].sort((a,b)=>{
+    let va=a[state.sortKey], vb=b[state.sortKey];
+    if(va===undefined || va===null) va=''; if(vb===undefined || vb===null) vb='';
+    let cmp;
+    if(state.sortKey==='revDate' || state.sortKey==='modified'){ cmp = String(va).localeCompare(String(vb)); }
+    else { cmp = String(va).localeCompare(String(vb), undefined, {numeric:true}); }
+    return state.sortDir==='asc' ? cmp : -cmp;
+  });
+  const totalPages = Math.max(1, Math.ceil(sorted.length/state.pageSize));
+  state.page = Math.min(state.page, totalPages);
+  const startIdx = (state.page-1)*state.pageSize;
+  const pageRows = sorted.slice(startIdx, startIdx+state.pageSize);
+
+  const tbody = document.getElementById('tableBody');
+  const emptyState = document.getElementById('emptyState');
+  if(pageRows.length===0){
+    tbody.innerHTML=''; emptyState.style.display='block';
+  } else {
+    emptyState.style.display='none';
+    tbody.innerHTML = pageRows.map(d=>`
+      <tr>
+        <td class="doc-no">${d.no}</td>
+        <td class="title-cell" title="${(d.title||'').replace(/"/g,'&quot;')}">${d.title||''}</td>
+        <td>${d.discipline||''}</td>
+        <td>${d.type||''}</td>
+        <td>${d.level||'-'}</td>
+        <td>
+          <span class="pill ${statusPillClass(d.status)}"><span class="pill-dot"></span>${statusLabel[d.status]||d.status}</span>
+          ${d.overdue?'<span class="overdue-flag">OVERDUE</span>':''}
+        </td>
+        <td>${d.rev!==undefined && d.rev!==null && d.rev!=='' ? d.rev : '-'}</td>
+        <td>${d.revDate||'-'}</td>
+        <td>${d.modified||'-'}</td>
+      </tr>`).join('');
+  }
+
+  document.getElementById('pageInfo').textContent = sorted.length
+    ? `Showing ${startIdx+1}\u2013${Math.min(startIdx+pageRows.length, sorted.length)} of ${sorted.length.toLocaleString()}`
+    : 'No results';
+
+  const pag = document.getElementById('paginationControls');
+  let html = `<button class="page-btn" id="prevBtn" ${state.page===1?'disabled':''}>&#8592; Prev</button>`;
+  const windowSize=5;
+  let startP = Math.max(1, state.page-Math.floor(windowSize/2));
+  let endP = Math.min(totalPages, startP+windowSize-1);
+  startP = Math.max(1, endP-windowSize+1);
+  for(let p=startP; p<=endP; p++){ html += `<button class="page-btn ${p===state.page?'active':''}" data-page="${p}">${p}</button>`; }
+  html += `<button class="page-btn" id="nextBtn" ${state.page===totalPages?'disabled':''}>Next &#8594;</button>`;
+  pag.innerHTML = html;
+
+  document.getElementById('prevBtn').onclick = ()=>{ state.page--; renderTable(getFiltered()); };
+  document.getElementById('nextBtn').onclick = ()=>{ state.page++; renderTable(getFiltered()); };
+  pag.querySelectorAll('[data-page]').forEach(btn=>{ btn.onclick = ()=>{ state.page = parseInt(btn.dataset.page); renderTable(getFiltered()); }; });
+
+  document.querySelectorAll('#docTable thead th').forEach(th=>{
+    const key = th.dataset.key;
+    const ind = th.querySelector('.sort-ind');
+    ind.innerHTML = state.sortKey===key ? (state.sortDir==='asc'?'&#8593;':'&#8595;') : '&#8645;';
+  });
+  return sorted;
+}
+
+function renderAll(){
+  refreshFilterOptions();
+  const rows = getFiltered();
+  renderKpis(rows);
+  renderStatusChart(rows);
+  renderDiscChart(rows);
+  renderLevelChart(rows);
+  renderTrendChart(rows);
+  renderTable(rows);
+}
+
+document.getElementById('fDiscipline').addEventListener('change', e=>{ state.discipline=e.target.value; state.page=1; renderAll(); });
+document.getElementById('fType').addEventListener('change', e=>{ state.type=e.target.value; state.page=1; renderAll(); });
+document.getElementById('fStatus').addEventListener('change', e=>{ state.status=e.target.value; state.page=1; renderAll(); });
+document.getElementById('fOverdue').addEventListener('change', e=>{ state.overdue=e.target.value; state.page=1; renderAll(); });
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  state.discipline='All'; state.type='All'; state.status='All'; state.overdue='All'; state.search=''; state.page=1;
+  document.getElementById('searchInput').value=''; document.getElementById('fOverdue').value='All'; renderAll();
+});
+document.getElementById('searchInput').addEventListener('input', e=>{ state.search=e.target.value; state.page=1; renderAll(); });
+document.getElementById('pageSizeSelect').addEventListener('change', e=>{ state.pageSize=parseInt(e.target.value); state.page=1; renderAll(); });
+document.querySelectorAll('#docTable thead th').forEach(th=>{
+  th.addEventListener('click', ()=>{
+    const key = th.dataset.key;
+    if(state.sortKey===key){ state.sortDir = state.sortDir==='asc'?'desc':'asc'; } else { state.sortKey=key; state.sortDir='asc'; }
+    renderAll();
+  });
+});
+
+function exportRows(){
+  return getFiltered().map(d=>({
+    'Drawing No': d.no, 'Title': d.title, 'Discipline': d.discipline, 'Type': d.type, 'Zone / Level': d.level,
+    'Review Status': statusLabel[d.status]||d.status, 'Revision': d.rev,
+    'Revision Date': d.revDate, 'Date Modified': d.modified, 'Overdue': d.overdue?'Yes':'No'
+  }));
+}
+
+document.getElementById('exportExcel').addEventListener('click', ()=>{
+  const ws = XLSX.utils.json_to_sheet(exportRows());
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Drawings');
+  XLSX.writeFile(wb, 'drawings_status.xlsx');
+});
+
+document.getElementById('exportCsv').addEventListener('click', ()=>{
+  const rows = exportRows();
+  const headers = Object.keys(rows[0]||{'Drawing No':''});
+  const csv = [headers.join(',')].concat(rows.map(r=>headers.map(h=>`"${String(r[h]??'').replace(/"/g,'""')}"`).join(','))).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob); link.download = 'drawings_status.csv'; link.click();
+});
+
+document.getElementById('exportPdf').addEventListener('click', ()=>{
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'landscape' });
+  const rows = exportRows();
+  doc.setFontSize(14);
+  doc.text(CONFIG.title || 'Drawings Status Dashboard', 14, 14);
+  doc.autoTable({
+    startY: 20,
+    head: [['Drawing No','Title','Discipline','Type','Zone','Status','Rev','Rev Date','Modified']],
+    body: rows.map(r=>[r['Drawing No'], r['Title'], r['Discipline'], r['Type'], r['Zone / Level'], r['Review Status'], r['Revision'], r['Revision Date'], r['Date Modified']]),
+    styles:{ fontSize:6.5 }, headStyles:{ fillColor:[59,130,246] }
+  });
+  doc.save('drawings_status.pdf');
+});
+
+function applyConfig(){
+  if(CONFIG.title){
+    document.title = CONFIG.title;
+    document.getElementById('dashboardTitle').textContent = CONFIG.title;
+  }
+  if(CONFIG.subtitle){
+    document.getElementById('dashboardSubtitle').textContent = CONFIG.subtitle;
+  }
+  const logoEl = document.getElementById('brandLogo');
+  if(CONFIG.logo){
+    logoEl.src = CONFIG.logo;
+    logoEl.alt = CONFIG.logoAlt || '';
+    logoEl.style.display = '';
+  } else {
+    logoEl.style.display = 'none';
+  }
+  // Overdue count in the header badge is computed from the loaded data, never hard-coded.
+  const overdueCount = DOCS.filter(d=>d.overdue).length;
+  document.getElementById('liveBadgeText').textContent =
+    `${overdueCount.toLocaleString()} drawing${overdueCount===1?'':'s'} overdue in review`;
+
+  // Footnote numbers are computed from the loaded data too, so they never go stale after a data.json update.
+  const surSubmitted = DOCS.filter(d=>d.discipline==='SUR').length;
+  const setText = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+  setText('fnSubmittedCount', TOTAL_SCOPE.toLocaleString());
+  setText('fnSubmittedCount2', TOTAL_SCOPE.toLocaleString());
+  setText('fnTotalExpected1', TOTAL_EXPECTED_ALL.toLocaleString());
+  setText('fnTotalExpected2', TOTAL_EXPECTED_ALL.toLocaleString());
+  setText('fnSurCorrected', surSubmitted.toLocaleString());
+}
+
+async function loadDashboard(){
+  try{
+    const [configRes, dataRes] = await Promise.all([
+      fetch('config.json', { cache:'no-store' }),
+      fetch('data.json', { cache:'no-store' })
+    ]);
+    if(!configRes.ok) throw new Error(`config.json failed to load (HTTP ${configRes.status})`);
+    if(!dataRes.ok) throw new Error(`data.json failed to load (HTTP ${dataRes.status})`);
+
+    CONFIG = await configRes.json();
+    const payload = await dataRes.json();
+
+    RAW = payload.submissions || [];
+    TOTAL_EXPECTED = payload.totalExpected || {};
+    TOTAL_EXPECTED_ALL = Object.values(TOTAL_EXPECTED).reduce((a,b)=>a+b,0);
+    DOCS = RAW.map(r=>({
+      no:r.no, title:r.title, discipline:r.discipline, type:r.type, status:r.status, rev:r.rev,
+      revDate:r.revDate, modified:r.modified, level:r.level, overdue:!!r.overdue
+    }));
+    TOTAL_SCOPE = DOCS.length;
+
+    applyConfig();
+    renderAll();
+  } catch(err){
+    const banner = document.getElementById('loadError');
+    banner.style.display = 'block';
+    banner.textContent = 'Could not load the dashboard: ' + err.message +
+      ' — if you opened this file directly (file://), serve it over http instead (e.g. GitHub Pages, or "python3 -m http.server").';
+    document.getElementById('dashboardSubtitle').textContent = 'Failed to load data.json / config.json';
+    console.error(err);
+  }
+}
+
+loadDashboard();
+</script>
+</body>
+</html>
